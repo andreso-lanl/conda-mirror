@@ -846,7 +846,7 @@ async fn mirror_subdir<T: Configurator>(
     let repodata_info = repodata.info.clone();
     let repodata_version = repodata.version;
     let repodata_removed = repodata.removed.clone();
-    let packages_to_mirror = get_packages_to_mirror(repodata, &config);
+    let packages_to_mirror = get_packages_to_mirror(repodata.clone(), &config);
     tracing::info!(
         "Mirroring {} packages in {}",
         packages_to_mirror.len(),
@@ -935,9 +935,9 @@ async fn mirror_subdir<T: Configurator>(
         packages_to_mirror.keys().cloned().collect()
     };
     // In append mode, start from existing repodata at output destination (if any)
-    let mut base_packages = repodata.packages.clone();
+    let mut base_packages = repodata.clone().packages;
     base_packages.clear();
-    let mut base_conda_packages = repodata.conda_packages.clone();
+    let mut base_conda_packages = repodata.clone().conda_packages;
     base_conda_packages.clear();
     if append_mode {
         // Try to read repodata from destination
@@ -958,16 +958,16 @@ async fn mirror_subdir<T: Configurator>(
     }
 
     // Overlay with source repodata for anything we have metadata for
-    for (k, v) in repodata
-        .packages
+    let packages = repodata.clone().packages;
+    let conda_packages = repodata.clone().conda_packages;
+    for (k, v) in packages
         .iter()
         .filter(|(k, _)| filenames_to_index.contains(*k))
     {
         base_packages.insert(k.clone(), v.clone());
         base_conda_packages.shift_remove(k);
     }
-    for (k, v) in repodata
-        .conda_packages
+    for (k, v) in conda_packages
         .iter()
         .filter(|(k, _)| filenames_to_index.contains(*k))
     {
